@@ -17,10 +17,14 @@ function validate( bodyParams ) {
 
 }
 
+function getBodyParams( req ) {
+    return requestUtils.getParams( req, [ 'username', 'email', 'password' ] );
+}
+
 module.exports.create = async ( req, res ) => {
     try {
 
-        const bodyParams = requestUtils.getParams( req, [ 'username', 'email', 'password' ] );
+        const bodyParams = getBodyParams();
 
         bodyParams.password = bcrypt.hashSync( bodyParams.password, 12 );
 
@@ -89,6 +93,65 @@ module.exports.findOne = async ( req, res ) => {
         
         return responseUtils.errorServerResponse( res, e );
 
+    }
+}
+
+module.exports.update = async ( req, res ) => {
+    try {
+
+        const { id } = req.params;
+
+        const bodyParams = getBodyParams();
+
+        bodyParams.password = bcrypt.hashSync( bodyParams.password, 12 );
+
+        const validator = validate( bodyParams );
+
+        if ( validator.fails() ) return res
+            .status(400)
+            .json({
+                message: 'invalid_params',
+                errors: validator.errors.errors
+            });
+
+        const user = await User.update( bodyParams, { where: { id } });
+
+        if ( !user ) return res
+            .status(400)
+            .json({
+                message: 'error_save'
+            });
+
+        return res
+            .status(201)
+            .json({
+                message: 'saved'
+            });
+        
+    } catch (e) {
+        
+        return responseUtils.errorServerResponse( res, e );
+
+    }
+}
+
+module.exports.deleteOne = async ( req, res ) => {
+    try {
+
+        const { id } = req.params;
+        
+        await User.deleteOne( { where: { id } } );
+
+        return res
+            .status( 202 )
+            .json({
+                message: 'deleted'
+            });
+        
+    } catch (e) {
+
+        return responseUtils.errorServerResponse( res, e );
+        
     }
 }
 

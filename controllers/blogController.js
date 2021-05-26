@@ -2,25 +2,30 @@ const requestUtils = require("../utils/requestUtils");
 const responseUtils = require("../utils/responseUtils");
 const bcrypt = require('bcrypt');
 
-const { User } = require('../models');
+const { Blog } = require('../models');
 const validatorUtils = require("../utils/validatorUtils");
 
 function validate( bodyParams ) {
 
     const validator = validatorUtils.makeValidation( bodyParams, {
-        username: 'required',
-        email: 'required|email',
-        password: 'required'
+        title: 'required',
+        content: 'required',        
     });
 
     return validator;
 
 }
 
+function getBodyParams(req) {
+
+    return requestUtils.getParams( req, [ 'content', 'title' ] );
+
+}
+
 module.exports.create = async ( req, res ) => {
     try {
 
-        const bodyParams = requestUtils.getParams( req, [ 'username', 'email', 'password' ] );
+        const bodyParams = getBodyParams();
 
         bodyParams.password = bcrypt.hashSync( bodyParams.password, 12 );
 
@@ -33,9 +38,9 @@ module.exports.create = async ( req, res ) => {
                 errors: validator.errors.errors
             });
 
-        const user = await User.create( bodyParams );
+        const blog = await Blog.create( bodyParams );
 
-        if ( !user ) return res
+        if ( !blog ) return res
             .status(400)
             .json({
                 message: 'error_save'
@@ -45,7 +50,7 @@ module.exports.create = async ( req, res ) => {
             .status(201)
             .json({
                 message: 'created',
-                user
+                blog
             });
         
     } catch (e) {
@@ -54,3 +59,34 @@ module.exports.create = async ( req, res ) => {
         
     }
 }
+
+module.exports.findAll = async ( req, res ) => {
+    try {
+
+        const blogs = await Blog.findAll();
+
+        return res
+            .json( blogs );
+        
+    } catch (e) {
+
+        return responseUtils.errorServerResponse( res, e );
+        
+    }
+}
+
+module.exports.findOne = async ( req, res ) => {
+    try {
+
+        const { id } = req.params;
+
+        const blog = await Blog.findByPk( id );
+
+        return res
+            .json( blog );
+        
+    } catch (e) {
+        return responseUtils.errorServerResponse( res, e );        
+    }
+}
+
